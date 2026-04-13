@@ -340,6 +340,13 @@ def render_save_case_dialog(analysis_input_mode: str, primary_eye: str):
                     }
                     st.rerun()
 
+                except ValueError as e:
+                    msg = str(e)
+                    if "duplicate" in msg.lower() or "already saved" in msg.lower():
+                        toast_warning(msg)
+                    else:
+                        toast_error(msg)
+
                 except Exception as e:
                     toast_error(str(e))
 
