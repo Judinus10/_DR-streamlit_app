@@ -51,22 +51,10 @@ def inject_save_dialog_error_styles():
             margin-bottom: 0.1rem;
         }
 
-        div[data-testid="stTextInput"] input {
-            border-radius: 10px;
-        }
-
         .missing-patient-id div[data-testid="stTextInput"] input,
         .missing-patient-name div[data-testid="stTextInput"] input,
-        .missing-age div[data-testid="stTextInput"] input {
-            border: 1.5px solid #ef4444 !important;
-            box-shadow: 0 0 0 1px #ef4444 !important;
-        }
-
-        div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
-            border-radius: 10px;
-        }
-
-        .missing-gender div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
+        .missing-age div[data-testid="stTextInput"] input,
+        .missing-gender div[data-baseweb="select"] > div {
             border: 1.5px solid #ef4444 !important;
             box-shadow: 0 0 0 1px #ef4444 !important;
         }
@@ -104,10 +92,6 @@ def inject_pdf_dialog_error_styles():
             margin-bottom: 0.1rem;
         }
 
-        div[data-testid="stTextInput"] input {
-            border-radius: 10px;
-        }
-
         .missing-report-title div[data-testid="stTextInput"] input,
         .missing-pdf-patient-name div[data-testid="stTextInput"] input,
         .missing-pdf-clinician-name div[data-testid="stTextInput"] input,
@@ -115,6 +99,13 @@ def inject_pdf_dialog_error_styles():
         .missing-pdf-institution-name div[data-testid="stTextInput"] input {
             border: 1.5px solid #ef4444 !important;
             box-shadow: 0 0 0 1px #ef4444 !important;
+        }
+
+        .pdf-dialog-note {
+            color: #9ca3af;
+            font-size: 0.88rem;
+            margin-top: -0.2rem;
+            margin-bottom: 0.55rem;
         }
         </style>
         """,
@@ -236,6 +227,7 @@ def current_pdf_options():
         "include_prediction_summary": st.session_state.pdf_include_prediction_summary,
         "include_probabilities": st.session_state.pdf_include_probabilities,
         "include_original_image": st.session_state.pdf_include_original_image,
+        "include_gradcam_heatmap": st.session_state.get("pdf_include_gradcam_heatmap", False),
         "include_gradcam_overlay": st.session_state.pdf_include_gradcam_overlay,
         "include_exudates_mask": st.session_state.pdf_include_exudates_mask,
         "include_exudates_overlay": st.session_state.pdf_include_exudates_overlay,
@@ -285,7 +277,7 @@ def render_save_case_dialog(analysis_input_mode: str, primary_eye: str):
             gender_class = "missing-gender" if "Gender" in missing_fields else ""
             st.markdown(f'<div class="{gender_class} save-field-wrap">', unsafe_allow_html=True)
             st.selectbox(
-                "Gender",
+                "Gender *",
                 options=["", "Male", "Female", "Other"],
                 key="save_patient_gender",
             )
@@ -301,7 +293,7 @@ def render_save_case_dialog(analysis_input_mode: str, primary_eye: str):
         with row2_col1:
             patient_name_class = "missing-patient-name" if "Patient Name" in missing_fields else ""
             st.markdown(f'<div class="{patient_name_class} save-field-wrap">', unsafe_allow_html=True)
-            st.text_input("Patient Name", key="save_patient_name")
+            st.text_input("Patient Name *", key="save_patient_name")
             st.markdown("</div>", unsafe_allow_html=True)
             if "Patient Name" in missing_fields:
                 st.markdown(
@@ -312,7 +304,7 @@ def render_save_case_dialog(analysis_input_mode: str, primary_eye: str):
         with row2_col2:
             age_class = "missing-age" if "Age" in missing_fields else ""
             st.markdown(f'<div class="{age_class} save-field-wrap">', unsafe_allow_html=True)
-            st.text_input("Age", key="save_patient_age")
+            st.text_input("Age *", key="save_patient_age")
             st.markdown("</div>", unsafe_allow_html=True)
             if "Age" in missing_fields:
                 st.markdown(
@@ -378,6 +370,10 @@ def render_pdf_report_dialog(
             st.session_state.generated_pdf_name = None
 
         st.write("Choose what should be included in the report before generating the PDF.")
+        st.markdown(
+            '<div class="pdf-dialog-note">Fields marked with * are required.</div>',
+            unsafe_allow_html=True,
+        )
 
         missing_fields = st.session_state.get("pdf_missing_fields", [])
 
@@ -403,6 +399,7 @@ def render_pdf_report_dialog(
             )
 
         row1_col1, row1_col2 = st.columns([1, 1], gap="small")
+
         with row1_col1:
             patient_name_class = "missing-pdf-patient-name" if "Patient name" in missing_fields else ""
             st.markdown(f'<div class="{patient_name_class} pdf-field-wrap">', unsafe_allow_html=True)
@@ -428,6 +425,7 @@ def render_pdf_report_dialog(
                 )
 
         row2_col1, row2_col2 = st.columns([1, 1], gap="small")
+
         with row2_col1:
             patient_id_class = "missing-pdf-patient-id" if "Patient ID" in missing_fields else ""
             st.markdown(f'<div class="{patient_id_class} pdf-field-wrap">', unsafe_allow_html=True)
@@ -466,6 +464,8 @@ def render_pdf_report_dialog(
             st.session_state["pdf_include_disclaimer"] = True
         if "pdf_include_original_image" not in st.session_state:
             st.session_state["pdf_include_original_image"] = False
+        if "pdf_include_gradcam_heatmap" not in st.session_state:
+            st.session_state["pdf_include_gradcam_heatmap"] = False
         if "pdf_include_gradcam_overlay" not in st.session_state:
             st.session_state["pdf_include_gradcam_overlay"] = False
         if "pdf_include_exudates_mask" not in st.session_state:
@@ -486,6 +486,7 @@ def render_pdf_report_dialog(
 
         with s2:
             st.checkbox("Original image", key="pdf_include_original_image")
+            st.checkbox("Grad-CAM heatmap", key="pdf_include_gradcam_heatmap")
             st.checkbox("Grad-CAM overlay", key="pdf_include_gradcam_overlay")
             st.checkbox("Exudates mask", key="pdf_include_exudates_mask")
             st.checkbox("Exudates overlay", key="pdf_include_exudates_overlay")
