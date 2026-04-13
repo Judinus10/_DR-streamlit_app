@@ -65,12 +65,10 @@ def queue_open_saved_case(case_id: str):
     }
 
 
-# ---------- APPLY PENDING CASE BEFORE ANY WIDGET WITH SAME KEYS ----------
 if "pending_loaded_case" in st.session_state:
     loaded_case = st.session_state.pop("pending_loaded_case")
     apply_case_to_session(st.session_state, loaded_case)
 
-# ---------- TOASTS ----------
 if "analysis_page_toast" in st.session_state:
     toast = st.session_state.pop("analysis_page_toast")
     level = toast.get("level", "info")
@@ -155,15 +153,16 @@ st.divider()
 
 st.subheader("Why did the model predict this?")
 
-_, switch_mid, _ = st.columns([1, 6.8, 1])
+# Strict centered wrapper for switch bar
+outer_left, outer_mid, outer_right = st.columns([1.2, 5.6, 1.2], gap="small")
 
-with switch_mid:
+with outer_mid:
     st.markdown(
         '<div class="switch-note">Switch between classifier explainability and segmentation-based lesion views.</div>',
         unsafe_allow_html=True,
     )
 
-    view_mode = st.radio(
+    st.radio(
         "View Mode",
         options=[
             "Original",
@@ -176,6 +175,7 @@ with switch_mid:
         label_visibility="collapsed",
     )
 
+view_mode = st.session_state.analysis_view_mode
 st.markdown("")
 
 show_side_controls = view_mode == "Heatmap"

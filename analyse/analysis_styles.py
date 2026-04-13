@@ -7,10 +7,11 @@ ANALYSIS_CSS = """
   [data-testid="stSidebarNav"] {display: none;}
 
   .switch-note {
-      color: #9aa4b2;
-      font-size: 0.95rem;
-      margin-bottom: 0.55rem;
+      color: #aab7c8;
+      font-size: 1rem;
+      margin-bottom: 0.6rem;
       text-align: center;
+      width: 100%;
   }
 
   .pred-card {
@@ -42,45 +43,57 @@ ANALYSIS_CSS = """
       font-weight: 700;
   }
 
+  /* center wrapper */
   div[data-testid="stRadio"] {
+      width: 100% !important;
       display: flex !important;
       justify-content: center !important;
       align-items: center !important;
-      width: 100% !important;
-      margin-top: 0.25rem;
-      margin-bottom: 1.25rem;
+      margin-top: 0.15rem !important;
+      margin-bottom: 1.35rem !important;
   }
 
   div[data-testid="stRadio"] > div {
+      width: 100% !important;
       display: flex !important;
       justify-content: center !important;
-      width: 100% !important;
+      align-items: center !important;
   }
 
   div[role="radiogroup"] {
       display: inline-flex !important;
       justify-content: center !important;
       align-items: stretch !important;
-      flex-wrap: nowrap;
+      flex-wrap: nowrap !important;
       gap: 0 !important;
-      border: 1px solid rgba(80, 225, 255, 0.55);
-      border-radius: 10px;
-      overflow: hidden;
-      background: rgba(80, 225, 255, 0.05);
-      margin: 0 auto !important;
+      margin-left: auto !important;
+      margin-right: auto !important;
+      border: 1px solid rgba(70, 213, 244, 0.70) !important;
+      border-radius: 16px !important;
+      overflow: hidden !important;
+      background: rgba(7, 28, 38, 0.95) !important;
+      box-shadow:
+          0 0 0 1px rgba(44, 196, 232, 0.08),
+          0 8px 22px rgba(0, 0, 0, 0.18) !important;
   }
 
   div[role="radiogroup"] > label {
       margin: 0 !important;
       border: none !important;
-      border-right: 1px solid rgba(80, 225, 255, 0.35) !important;
+      border-right: 1px solid rgba(70, 213, 244, 0.28) !important;
       border-radius: 0 !important;
-      padding: 0.72rem 1.55rem !important;
-      min-width: 155px;
+      padding: 0.88rem 2.15rem !important;
+      min-width: 210px !important;
       justify-content: center !important;
       align-items: center !important;
-      background: transparent !important;
-      transition: background 0.2s ease, color 0.2s ease;
+      background: rgba(7, 28, 38, 0.95) !important;
+      transition:
+          background 0.18s ease,
+          color 0.18s ease,
+          box-shadow 0.18s ease !important;
+      cursor: pointer !important;
+      position: relative !important;
+      box-shadow: none !important;
   }
 
   div[role="radiogroup"] > label:last-child {
@@ -88,30 +101,10 @@ ANALYSIS_CSS = """
   }
 
   div[role="radiogroup"] > label:hover {
-      background: rgba(80, 225, 255, 0.12) !important;
+      background: rgba(38, 164, 203, 0.14) !important;
   }
 
-  /* FIX selected tab highlight */
-  div[role="radiogroup"] > label[data-selected="true"],
-  div[role="radiogroup"] > label:has(input[aria-checked="true"]),
-  div[role="radiogroup"] > label[aria-checked="true"] {
-      background: rgb(88, 230, 255) !important;
-  }
-
-  div[role="radiogroup"] > label[data-selected="true"] p,
-  div[role="radiogroup"] > label:has(input[aria-checked="true"]) p,
-  div[role="radiogroup"] > label[aria-checked="true"] p {
-      color: #06263a !important;
-      font-weight: 700 !important;
-  }
-
-  div[role="radiogroup"] > label p {
-      color: #dffbff !important;
-      font-size: 1rem !important;
-      font-weight: 500 !important;
-      margin: 0 !important;
-  }
-
+  /* hide radio elements */
   div[role="radiogroup"] input,
   div[role="radiogroup"] input[type="radio"],
   div[role="radiogroup"] svg,
@@ -125,6 +118,62 @@ ANALYSIS_CSS = """
       min-height: 0 !important;
       margin: 0 !important;
       padding: 0 !important;
+  }
+
+  div[role="radiogroup"] > label p {
+      color: #dff7ff !important;
+      font-size: 1.04rem !important;
+      font-weight: 650 !important;
+      margin: 0 !important;
+      text-align: center !important;
+      letter-spacing: 0.01em !important;
+      transition: color 0.18s ease !important;
+  }
+
+  div[role="radiogroup"] > label::after {
+      content: none !important;
+  }
+
+  /* ACTIVE TAB:
+     Use aria-checked on the inner div that Streamlit actually toggles */
+  div[role="radiogroup"] > label:has(div[aria-checked="true"]),
+  div[role="radiogroup"] > label:has(input[aria-checked="true"]),
+  div[role="radiogroup"] > label:has(input:checked),
+  div[role="radiogroup"] > label[data-selected="true"],
+  div[role="radiogroup"] > label[aria-checked="true"] {
+      background: linear-gradient(
+          180deg,
+          rgba(90, 238, 255, 1.0) 0%,
+          rgba(44, 214, 241, 0.98) 100%
+      ) !important;
+      box-shadow:
+          inset 0 0 0 1px rgba(255,255,255,0.18),
+          0 0 24px rgba(63, 224, 248, 0.28) !important;
+      z-index: 2 !important;
+  }
+
+  div[role="radiogroup"] > label:has(div[aria-checked="true"])::after,
+  div[role="radiogroup"] > label:has(input[aria-checked="true"])::after,
+  div[role="radiogroup"] > label:has(input:checked)::after,
+  div[role="radiogroup"] > label[data-selected="true"]::after,
+  div[role="radiogroup"] > label[aria-checked="true"]::after {
+      content: "";
+      position: absolute;
+      left: 10%;
+      right: 10%;
+      top: 4px;
+      height: 3px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.78);
+  }
+
+  div[role="radiogroup"] > label:has(div[aria-checked="true"]) p,
+  div[role="radiogroup"] > label:has(input[aria-checked="true"]) p,
+  div[role="radiogroup"] > label:has(input:checked) p,
+  div[role="radiogroup"] > label[data-selected="true"] p,
+  div[role="radiogroup"] > label[aria-checked="true"] p {
+      color: #052838 !important;
+      font-weight: 800 !important;
   }
 
   div[data-testid="stImage"] img {
