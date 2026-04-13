@@ -91,11 +91,16 @@ ANALYSIS_CSS = """
       background: rgba(80, 225, 255, 0.12) !important;
   }
 
-  div[role="radiogroup"] > label[data-selected="true"] {
+  /* FIX selected tab highlight */
+  div[role="radiogroup"] > label[data-selected="true"],
+  div[role="radiogroup"] > label:has(input[aria-checked="true"]),
+  div[role="radiogroup"] > label[aria-checked="true"] {
       background: rgb(88, 230, 255) !important;
   }
 
-  div[role="radiogroup"] > label[data-selected="true"] p {
+  div[role="radiogroup"] > label[data-selected="true"] p,
+  div[role="radiogroup"] > label:has(input[aria-checked="true"]) p,
+  div[role="radiogroup"] > label[aria-checked="true"] p {
       color: #06263a !important;
       font-weight: 700 !important;
   }
@@ -123,13 +128,35 @@ ANALYSIS_CSS = """
   }
 
   div[data-testid="stImage"] img {
-      max-height: 520px !important;
-      width: auto !important;
+      max-height: none !important;
+      width: 100% !important;
       max-width: 100% !important;
       object-fit: contain !important;
       display: block !important;
       margin-left: auto !important;
       margin-right: auto !important;
+  }
+
+  .exp-img-wrap {
+      width: 100%;
+      min-width: 0;
+  }
+
+  .exp-img-wrap [data-testid="stImage"] {
+      width: 100% !important;
+  }
+
+  .exp-img-wrap [data-testid="stImage"] img {
+      width: 100% !important;
+      max-width: 100% !important;
+      height: 420px !important;
+      object-fit: contain !important;
+      border-radius: 14px !important;
+      background: transparent !important;
+  }
+
+  .exp-img-wrap.pair [data-testid="stImage"] img {
+      height: 460px !important;
   }
 
   .loader-overlay {

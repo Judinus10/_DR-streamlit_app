@@ -181,19 +181,25 @@ st.markdown("")
 show_side_controls = view_mode == "Heatmap"
 
 if show_side_controls:
-    left, right = st.columns([2.7, 1.0], gap="large")
-else:
-    left = st.container()
-    right = None
+    if analysis_input_mode == "single":
+        left_col, right_col = st.columns([4.7, 1.3], gap="large")
 
-with left:
+        with right_col:
+            render_eye_controls(primary_eye, cls_model)
+
+        with left_col:
+            c = computed[primary_eye]
+            render_explainability_single(c, primary_eye)
+
+    else:
+        render_explainability_pair_vertical(computed, cls_model)
+
+else:
     if analysis_input_mode == "single":
         c = computed[primary_eye]
 
         if view_mode == "Original":
             render_original_single(c, primary_eye)
-        elif view_mode == "Heatmap":
-            render_explainability_single(c, primary_eye)
         elif view_mode == "Exudates (EX)":
             render_ex_single(c, primary_eye)
         elif view_mode == "Haemorrhages (HE)":
@@ -201,17 +207,10 @@ with left:
     else:
         if view_mode == "Original":
             render_original_pair(computed)
-        elif view_mode == "Heatmap":
-            render_explainability_pair_vertical(computed, cls_model)
         elif view_mode == "Exudates (EX)":
             render_ex_pair(computed)
         elif view_mode == "Haemorrhages (HE)":
             render_he_pair(computed)
-
-if show_side_controls and right is not None:
-    with right:
-        if analysis_input_mode == "single":
-            render_eye_controls(primary_eye, cls_model)
 
 st.markdown("---")
 st.subheader("Saved Cases")

@@ -31,7 +31,6 @@ def render_eye_controls(eye: str, cls_model=None):
 
     current_layer = st.session_state.get(f"{eye}_analysis_target_layer", "(auto)")
     if current_layer not in layer_options:
-        current_layer = "(auto)"
         st.session_state[f"{eye}_analysis_target_layer"] = "(auto)"
 
     st.selectbox(
@@ -48,6 +47,13 @@ def render_eye_controls(eye: str, cls_model=None):
         step=0.05,
         key=f"{eye}_analysis_alpha",
     )
+
+
+def _exp_image(image, pair: bool = False):
+    cls = "exp-img-wrap pair" if pair else "exp-img-wrap"
+    st.markdown(f'<div class="{cls}">', unsafe_allow_html=True)
+    st.image(image, use_container_width=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def render_original_single(c: dict, primary_eye: str):
@@ -89,13 +95,13 @@ def render_explainability_single(c: dict, primary_eye: str):
     st.markdown("### Explainability Comparison")
     st.markdown(f"#### {primary_eye.title()} Eye")
 
-    img1, img2, img3 = st.columns([1.12, 1.12, 1.12], gap="medium")
+    img1, img2, img3 = st.columns([1, 1, 1], gap="medium")
     with img1:
-        st.image(c["display_rgb"], use_container_width=True)
+        _exp_image(c["display_rgb"], pair=False)
     with img2:
-        st.image(c["heatmap_rgb"], use_container_width=True)
+        _exp_image(c["heatmap_rgb"], pair=False)
     with img3:
-        st.image(c["cam_overlay_rgb"], use_container_width=True)
+        _exp_image(c["cam_overlay_rgb"], pair=False)
 
 
 def render_explainability_pair_vertical(computed: dict, cls_model=None):
@@ -103,17 +109,17 @@ def render_explainability_pair_vertical(computed: dict, cls_model=None):
 
     if "right" in computed:
         c = computed["right"]
-        row_left, row_right = st.columns([2.7, 1.0], gap="large")
+        row_left, row_right = st.columns([4.6, 1.0], gap="large")
 
         with row_left:
             st.markdown("#### Right Eye")
-            img1, img2, img3 = st.columns([1.15, 1.15, 1.15], gap="medium")
+            img1, img2, img3 = st.columns([1.35, 1.35, 1.35], gap="medium")
             with img1:
-                st.image(c["display_rgb"], use_container_width=True)
+                _exp_image(c["display_rgb"], pair=True)
             with img2:
-                st.image(c["heatmap_rgb"], use_container_width=True)
+                _exp_image(c["heatmap_rgb"], pair=True)
             with img3:
-                st.image(c["cam_overlay_rgb"], use_container_width=True)
+                _exp_image(c["cam_overlay_rgb"], pair=True)
 
         with row_right:
             render_eye_controls("right", cls_model)
@@ -122,17 +128,17 @@ def render_explainability_pair_vertical(computed: dict, cls_model=None):
 
     if "left" in computed:
         c = computed["left"]
-        row_left, row_right = st.columns([2.7, 1.0], gap="large")
+        row_left, row_right = st.columns([4.6, 1.0], gap="large")
 
         with row_left:
             st.markdown("#### Left Eye")
-            img1, img2, img3 = st.columns([1.15, 1.15, 1.15], gap="medium")
+            img1, img2, img3 = st.columns([1.35, 1.35, 1.35], gap="medium")
             with img1:
-                st.image(c["display_rgb"], use_container_width=True)
+                _exp_image(c["display_rgb"], pair=True)
             with img2:
-                st.image(c["heatmap_rgb"], use_container_width=True)
+                _exp_image(c["heatmap_rgb"], pair=True)
             with img3:
-                st.image(c["cam_overlay_rgb"], use_container_width=True)
+                _exp_image(c["cam_overlay_rgb"], pair=True)
 
         with row_right:
             render_eye_controls("left", cls_model)
