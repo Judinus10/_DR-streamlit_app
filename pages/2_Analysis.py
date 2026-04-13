@@ -178,10 +178,10 @@ with switch_mid:
 
 st.markdown("")
 
-show_side_controls = view_mode == "Heatmap Explainability" and analysis_input_mode == "single"
+show_side_controls = view_mode == "Heatmap"
 
 if show_side_controls:
-    left, right = st.columns([2.0, 0.95], gap="large")
+    left, right = st.columns([2.7, 1.0], gap="large")
 else:
     left = st.container()
     right = None
@@ -202,7 +202,7 @@ with left:
         if view_mode == "Original":
             render_original_pair(computed)
         elif view_mode == "Heatmap":
-            render_explainability_pair_vertical(computed)
+            render_explainability_pair_vertical(computed, cls_model)
         elif view_mode == "Exudates (EX)":
             render_ex_pair(computed)
         elif view_mode == "Haemorrhages (HE)":
@@ -210,8 +210,8 @@ with left:
 
 if show_side_controls and right is not None:
     with right:
-        st.subheader("Explainability Controls")
-        render_eye_controls(primary_eye)
+        if analysis_input_mode == "single":
+            render_eye_controls(primary_eye, cls_model)
 
 st.markdown("---")
 st.subheader("Saved Cases")

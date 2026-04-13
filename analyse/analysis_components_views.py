@@ -4,7 +4,7 @@ import streamlit as st
 import utils_classification as cls_utils
 
 
-def render_eye_controls(eye: str):
+def render_eye_controls(eye: str, cls_model=None):
     st.markdown(f"### {eye.title()} Eye Controls")
 
     st.selectbox(
@@ -19,6 +19,26 @@ def render_eye_controls(eye: str):
         options=list(range(cls_utils.NUM_CLASSES)),
         format_func=lambda i: cls_utils.CLASS_NAMES[i],
         key=f"{eye}_analysis_target_class",
+    )
+
+    layer_options = ["(auto)"]
+    if cls_model is not None:
+        try:
+            convs = cls_utils.list_conv2d_layers(cls_model)
+            layer_options.extend([name for name, _ in convs])
+        except Exception:
+            pass
+
+    current_layer = st.session_state.get(f"{eye}_analysis_target_layer", "(auto)")
+    if current_layer not in layer_options:
+        current_layer = "(auto)"
+        st.session_state[f"{eye}_analysis_target_layer"] = "(auto)"
+
+    st.selectbox(
+        f"{eye.title()} target layer",
+        options=layer_options,
+        key=f"{eye}_analysis_target_layer",
+        help="Auto uses the default selected layer. You can manually test other Conv2D layers here.",
     )
 
     st.slider(
@@ -66,36 +86,28 @@ def render_original_pair(computed: dict):
 
 
 def render_explainability_single(c: dict, primary_eye: str):
-    st.markdown(f"### {c['cam_method_ui']} View")
-    st.caption(
-        f"Powered by the classification model for the {primary_eye.title()} eye. "
-        f"The heatmap is aligned to the resized model input."
-    )
+    st.markdown("### Explainability Comparison")
+    st.markdown(f"#### {primary_eye.title()} Eye")
 
-    col1, col2 = st.columns(2, gap="large")
-    with col1:
-        st.markdown(f"#### {c['cam_method_ui']} Heatmap")
+    img1, img2, img3 = st.columns([1.12, 1.12, 1.12], gap="medium")
+    with img1:
+        st.image(c["display_rgb"], use_container_width=True)
+    with img2:
         st.image(c["heatmap_rgb"], use_container_width=True)
-
-    with col2:
-        st.markdown(f"#### {c['cam_method_ui']} Overlay")
+    with img3:
         st.image(c["cam_overlay_rgb"], use_container_width=True)
 
-    st.markdown("")
-    st.markdown("#### Model Input View")
-    st.image(c["display_rgb"], use_container_width=True)
 
-
-def render_explainability_pair_vertical(computed: dict):
+def render_explainability_pair_vertical(computed: dict, cls_model=None):
     st.markdown("### Explainability Comparison")
 
     if "right" in computed:
         c = computed["right"]
-        row_left, row_right = st.columns([2.0, 0.95], gap="large")
+        row_left, row_right = st.columns([2.7, 1.0], gap="large")
 
         with row_left:
             st.markdown("#### Right Eye")
-            img1, img2, img3 = st.columns(3, gap="medium")
+            img1, img2, img3 = st.columns([1.15, 1.15, 1.15], gap="medium")
             with img1:
                 st.image(c["display_rgb"], use_container_width=True)
             with img2:
@@ -104,17 +116,17 @@ def render_explainability_pair_vertical(computed: dict):
                 st.image(c["cam_overlay_rgb"], use_container_width=True)
 
         with row_right:
-            render_eye_controls("right")
+            render_eye_controls("right", cls_model)
 
         st.markdown("---")
 
     if "left" in computed:
         c = computed["left"]
-        row_left, row_right = st.columns([2.0, 0.95], gap="large")
+        row_left, row_right = st.columns([2.7, 1.0], gap="large")
 
         with row_left:
             st.markdown("#### Left Eye")
-            img1, img2, img3 = st.columns(3, gap="medium")
+            img1, img2, img3 = st.columns([1.15, 1.15, 1.15], gap="medium")
             with img1:
                 st.image(c["display_rgb"], use_container_width=True)
             with img2:
@@ -123,7 +135,7 @@ def render_explainability_pair_vertical(computed: dict):
                 st.image(c["cam_overlay_rgb"], use_container_width=True)
 
         with row_right:
-            render_eye_controls("left")
+            render_eye_controls("left", cls_model)
 
 
 def render_ex_single(c: dict, primary_eye: str):
