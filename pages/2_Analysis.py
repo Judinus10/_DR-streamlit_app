@@ -57,18 +57,32 @@ def toast_info(message: str):
 
 
 def queue_open_saved_case(case_id: str):
+    current_open_case_id = str(st.session_state.get("saved_case_id", "") or "").strip()
+
+    # IMPORTANT:
+    # if the same saved case is already open, do not reload it
+    if current_open_case_id and current_open_case_id == str(case_id).strip():
+        st.session_state.analysis_page_toast = {
+            "level": "warning",
+            "message": "This case is already open.",
+        }
+        return False
+
     loaded = load_case_bundle(case_id)
     st.session_state.pending_loaded_case = loaded
     st.session_state.analysis_page_toast = {
         "level": "success",
         "message": f"Opened saved case {case_id}.",
     }
+    return True
 
 
+# ---------- APPLY PENDING CASE BEFORE ANY WIDGET WITH SAME KEYS ----------
 if "pending_loaded_case" in st.session_state:
     loaded_case = st.session_state.pop("pending_loaded_case")
     apply_case_to_session(st.session_state, loaded_case)
 
+# ---------- TOASTS ----------
 if "analysis_page_toast" in st.session_state:
     toast = st.session_state.pop("analysis_page_toast")
     level = toast.get("level", "info")
@@ -153,7 +167,6 @@ st.divider()
 
 st.subheader("Why did the model predict this?")
 
-# Strict centered wrapper for switch bar
 outer_left, outer_mid, outer_right = st.columns([1.2, 5.6, 1.2], gap="small")
 
 with outer_mid:
@@ -217,10 +230,12 @@ st.subheader("Saved Cases")
 st.caption("Last 5 persistent cases. These remain available even after you close and reopen the app.")
 
 saved_cases = list_saved_cases(limit=5)
+current_open_case_id = str(st.session_state.get("saved_case_id", "") or "").strip()
 
 if saved_cases:
     for idx, case in enumerate(saved_cases):
-        case_id = case.get("case_id", f"case_{idx + 1}")
+        case_id = str(case.get("case_id", f"case_{idx + 1}")).strip()
+        is_current_open = bool(current_open_case_id) and (current_open_case_id == case_id)
 
         col_a, col_b = st.columns([5.5, 1.15], gap="large")
 
@@ -229,13 +244,17 @@ if saved_cases:
 
         with col_b:
             st.markdown("<div style='height: 18px;'></div>", unsafe_allow_html=True)
+
+            button_label = "Already Open" if is_current_open else "Open"
+
             if st.button(
-                "Open",
+                button_label,
                 key=f"analysis_open_saved_{case_id}",
                 use_container_width=True,
+                disabled=False,
             ):
                 try:
-                    queue_open_saved_case(case_id)
+                    opened = queue_open_saved_case(case_id)
                     st.rerun()
                 except Exception as e:
                     toast_error(f"Failed to open saved case: {e}")
