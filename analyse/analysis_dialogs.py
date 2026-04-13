@@ -328,6 +328,7 @@ def render_save_case_dialog(analysis_input_mode: str, primary_eye: str):
 
                     if data["missing_fields"]:
                         st.session_state.save_case_missing_fields = data["missing_fields"]
+                        st.session_state.show_save_case_dialog = True
                         toast_warning("Enter the missing required data before saving.")
                         st.rerun()
 
@@ -343,11 +344,14 @@ def render_save_case_dialog(analysis_input_mode: str, primary_eye: str):
                 except ValueError as e:
                     msg = str(e)
                     if "duplicate" in msg.lower() or "already saved" in msg.lower():
+                        st.session_state.show_save_case_dialog = True
                         toast_warning(msg)
                     else:
+                        st.session_state.show_save_case_dialog = True
                         toast_error(msg)
 
                 except Exception as e:
+                    st.session_state.show_save_case_dialog = True
                     toast_error(str(e))
 
         with b2:
@@ -511,6 +515,7 @@ def render_pdf_report_dialog(
                     st.session_state.pdf_missing_fields = data["missing_fields"]
                     st.session_state.generated_pdf_bytes = None
                     st.session_state.generated_pdf_name = None
+                    st.session_state.show_pdf_dialog = True
                     toast_warning("Fill the required fields before generating the PDF.")
                     st.rerun()
 
@@ -528,12 +533,15 @@ def render_pdf_report_dialog(
                 file_name = f"dr_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
                 st.session_state.generated_pdf_bytes = pdf_bytes
                 st.session_state.generated_pdf_name = file_name
+                st.session_state.show_pdf_dialog = True
                 toast_success("PDF generated. Download it below.")
 
         with btn2:
             if st.button("Close", key="close_pdf_dialog_btn", use_container_width=True):
                 st.session_state.show_pdf_dialog = False
                 st.session_state.pdf_missing_fields = []
+                st.session_state.generated_pdf_bytes = None
+                st.session_state.generated_pdf_name = None
                 st.rerun()
 
         if st.session_state.generated_pdf_bytes is not None:

@@ -270,9 +270,13 @@ if st.session_state.show_pdf_dialog:
         available_eyes=available_eyes,
         analysis_input_mode=analysis_input_mode,
     )
+    # consume the open request so refresh/file-change won't reopen automatically
+    st.session_state.show_pdf_dialog = False
 
 if st.session_state.show_save_case_dialog:
     render_save_case_dialog(
         analysis_input_mode=analysis_input_mode,
         primary_eye=primary_eye,
     )
+    # consume the open request so refresh/file-change won't reopen automatically
+    st.session_state.show_save_case_dialog = False
