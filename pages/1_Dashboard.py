@@ -139,6 +139,7 @@ def build_eye_result(result_dict, uploaded_name):
         "pred_name": result_dict["pred_name"],
         "probs": result_dict["probs"],
         "raw_rgb": result_dict["raw_rgb"],
+        "display_rgb": result_dict["display_rgb"],
         "input_tensor": result_dict["input_tensor"].detach(),
         "uploaded_name": uploaded_name,
     }

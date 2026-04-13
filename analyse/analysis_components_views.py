@@ -43,7 +43,7 @@ def render_original_single(c: dict, primary_eye: str):
             <div class="pred-card">
                 <b>Prediction:</b> {c["pred_name"]}<br>
                 <b>Confidence:</b> {conf*100:.1f}%<br><br>
-                This is the untouched input image used by both the classification and segmentation models.
+                This is the original uploaded retinal image.
             </div>
             """,
             unsafe_allow_html=True,
@@ -67,15 +67,23 @@ def render_original_pair(computed: dict):
 
 def render_explainability_single(c: dict, primary_eye: str):
     st.markdown(f"### {c['cam_method_ui']} View")
-    st.caption(f"Powered by the classification model for the {primary_eye.title()} eye.")
+    st.caption(
+        f"Powered by the classification model for the {primary_eye.title()} eye. "
+        f"The heatmap is aligned to the resized model input."
+    )
 
     col1, col2 = st.columns(2, gap="large")
     with col1:
         st.markdown(f"#### {c['cam_method_ui']} Heatmap")
         st.image(c["heatmap_rgb"], use_container_width=True)
+
     with col2:
         st.markdown(f"#### {c['cam_method_ui']} Overlay")
         st.image(c["cam_overlay_rgb"], use_container_width=True)
+
+    st.markdown("")
+    st.markdown("#### Model Input View")
+    st.image(c["display_rgb"], use_container_width=True)
 
 
 def render_explainability_pair_vertical(computed: dict):
@@ -87,10 +95,12 @@ def render_explainability_pair_vertical(computed: dict):
 
         with row_left:
             st.markdown("#### Right Eye")
-            img1, img2 = st.columns(2, gap="medium")
+            img1, img2, img3 = st.columns(3, gap="medium")
             with img1:
-                st.image(c["heatmap_rgb"], use_container_width=True)
+                st.image(c["display_rgb"], use_container_width=True)
             with img2:
+                st.image(c["heatmap_rgb"], use_container_width=True)
+            with img3:
                 st.image(c["cam_overlay_rgb"], use_container_width=True)
 
         with row_right:
@@ -104,10 +114,12 @@ def render_explainability_pair_vertical(computed: dict):
 
         with row_left:
             st.markdown("#### Left Eye")
-            img1, img2 = st.columns(2, gap="medium")
+            img1, img2, img3 = st.columns(3, gap="medium")
             with img1:
-                st.image(c["heatmap_rgb"], use_container_width=True)
+                st.image(c["display_rgb"], use_container_width=True)
             with img2:
+                st.image(c["heatmap_rgb"], use_container_width=True)
+            with img3:
                 st.image(c["cam_overlay_rgb"], use_container_width=True)
 
         with row_right:

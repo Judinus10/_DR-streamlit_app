@@ -139,7 +139,9 @@ def compute_outputs_per_eye(
         pred_idx = int(eye_result["pred_idx"])
         pred_name = eye_result["pred_name"]
         probs = np.array(eye_result["probs"], dtype=np.float32)
-        raw_rgb = eye_result["raw_rgb"]
+
+        raw_rgb = eye_result["raw_rgb"]  # original upload
+        display_rgb = eye_result.get("display_rgb", raw_rgb)  # resized image matching CAM geometry
         input_tensor = eye_result["input_tensor"].to(cls_device)
         uploaded_name = eye_result.get("uploaded_name", f"{eye}_eye")
 
@@ -162,12 +164,15 @@ def compute_outputs_per_eye(
             method=cam_method,
         )
 
+        # IMPORTANT:
+        # CAM overlay must use the same resized geometry that the model saw
         cam_overlay_rgb, heatmap_rgb = cls_utils.overlay_heatmap(
-            raw_rgb,
+            display_rgb,
             cam_mask,
             alpha=alpha,
         )
 
+        # Segmentation can still run on original image path if needed
         pil_for_seg = Image.fromarray(raw_rgb)
         seg_result = seg_utils.predict_segmentation(seg_model, seg_device, pil_for_seg)
 
@@ -176,6 +181,7 @@ def compute_outputs_per_eye(
             "pred_name": pred_name,
             "probs": probs,
             "raw_rgb": raw_rgb,
+            "display_rgb": display_rgb,
             "input_tensor": input_tensor,
             "uploaded_name": uploaded_name,
             "target_class": target_class,

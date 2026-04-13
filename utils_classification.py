@@ -63,10 +63,20 @@ def pil_to_rgb_np(pil_img: Image.Image) -> np.ndarray:
 
 
 def preprocess(pil_img: Image.Image):
-    rgb = pil_to_rgb_np(pil_img)
-    aug = get_transform()(image=rgb)
+    # Original uploaded image
+    raw_rgb = pil_to_rgb_np(pil_img)
+
+    # Exact resized image that the model/CAM geometry should match
+    display_rgb = cv2.resize(
+        raw_rgb,
+        (IMG_SIZE, IMG_SIZE),
+        interpolation=cv2.INTER_LINEAR,
+    )
+
+    aug = get_transform()(image=raw_rgb)
     x = aug["image"].unsqueeze(0)
-    return x, rgb
+
+    return x, raw_rgb, display_rgb
 
 
 def _extract_state_dict(ckpt):
@@ -123,7 +133,7 @@ def load_model_cached():
 
 
 def predict(model, device, pil_img: Image.Image):
-    x, raw_rgb = preprocess(pil_img)
+    x, raw_rgb, display_rgb = preprocess(pil_img)
     x = x.to(device)
 
     with torch.no_grad():
@@ -135,7 +145,8 @@ def predict(model, device, pil_img: Image.Image):
         "pred_idx": pred_idx,
         "pred_name": CLASS_NAMES[pred_idx],
         "probs": probs,
-        "raw_rgb": raw_rgb,
+        "raw_rgb": raw_rgb,           # original upload
+        "display_rgb": display_rgb,   # resized image matching model/CAM geometry
         "input_tensor": x,
         "logits": logits.squeeze(0).detach().cpu().numpy(),
     }
@@ -166,8 +177,22 @@ def choose_target_layer(model: torch.nn.Module, preferred_name: str | None = Non
     return convs[-1][0], convs[-1][1]
 
 
+def create_fundus_mask(rgb_img: np.ndarray) -> np.ndarray:
+    gray = cv2.cvtColor(rgb_img, cv2.COLOR_RGB2GRAY)
+
+    # Anything above very dark background is likely inside fundus region
+    _, mask = cv2.threshold(gray, 10, 255, cv2.THRESH_BINARY)
+
+    # Clean up tiny holes/noise
+    kernel = np.ones((7, 7), np.uint8)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+    mask = cv2.GaussianBlur(mask, (7, 7), 0)
+
+    return (mask.astype(np.float32) / 255.0)
+
+
 def overlay_heatmap(rgb_img: np.ndarray, cam_mask: np.ndarray, alpha: float = 0.45):
-    cam_mask = np.clip(cam_mask, 0.0, 1.0)
+    cam_mask = np.clip(cam_mask.astype(np.float32), 0.0, 1.0)
 
     if cam_mask.shape[:2] != rgb_img.shape[:2]:
         cam_mask = cv2.resize(
@@ -176,11 +201,26 @@ def overlay_heatmap(rgb_img: np.ndarray, cam_mask: np.ndarray, alpha: float = 0.
             interpolation=cv2.INTER_LINEAR,
         )
 
+    # Suppress activation outside visible fundus region
+    fundus_mask = create_fundus_mask(rgb_img)
+    cam_mask = cam_mask * fundus_mask
+
+    # Re-normalize after masking
+    cam_min = float(cam_mask.min())
+    cam_max = float(cam_mask.max())
+    if cam_max > cam_min:
+        cam_mask = (cam_mask - cam_min) / (cam_max - cam_min)
+    else:
+        cam_mask = np.zeros_like(cam_mask, dtype=np.float32)
+
     heat = (cam_mask * 255).astype(np.uint8)
     heatmap = cv2.applyColorMap(heat, cv2.COLORMAP_JET)
     heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
 
+    # Outside fundus, keep original image more visible
     overlay = (alpha * heatmap + (1 - alpha) * rgb_img).astype(np.uint8)
+    overlay = np.where(fundus_mask[..., None] > 0.05, overlay, rgb_img)
+
     return overlay, heatmap
 
 
