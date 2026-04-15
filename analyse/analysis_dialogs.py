@@ -237,6 +237,23 @@ def current_pdf_options():
     }
 
 
+def reset_pdf_default_sections():
+    # These should be selected every time the PDF dialog opens fresh
+    st.session_state["pdf_include_report_details"] = True
+    st.session_state["pdf_include_original_image"] = True
+    st.session_state["pdf_include_prediction_summary"] = True
+    st.session_state["pdf_include_probabilities"] = True
+    st.session_state["pdf_include_disclaimer"] = True
+
+    # Optional sections default off
+    st.session_state["pdf_include_gradcam_heatmap"] = False
+    st.session_state["pdf_include_gradcam_overlay"] = False
+    st.session_state["pdf_include_exudates_mask"] = False
+    st.session_state["pdf_include_exudates_overlay"] = False
+    st.session_state["pdf_include_haemorrhages_mask"] = False
+    st.session_state["pdf_include_haemorrhages_overlay"] = False
+
+
 def render_save_case_dialog(analysis_input_mode: str, primary_eye: str):
     @st.dialog("Save Case")
     def _dialog():
@@ -380,6 +397,12 @@ def render_pdf_report_dialog(
         if "generated_pdf_name" not in st.session_state:
             st.session_state.generated_pdf_name = None
 
+        # IMPORTANT:
+        # reset default section selections only once per fresh dialog open
+        if not st.session_state.get("pdf_dialog_initialized", False):
+            reset_pdf_default_sections()
+            st.session_state["pdf_dialog_initialized"] = True
+
         st.write("Choose what should be included in the report before generating the PDF.")
         st.markdown(
             '<div class="pdf-dialog-note">Fields marked with * are required.</div>',
@@ -465,38 +488,15 @@ def render_pdf_report_dialog(
 
         st.markdown("### Include sections")
 
-        if "pdf_include_report_details" not in st.session_state:
-            st.session_state["pdf_include_report_details"] = True
-        if "pdf_include_prediction_summary" not in st.session_state:
-            st.session_state["pdf_include_prediction_summary"] = True
-        if "pdf_include_probabilities" not in st.session_state:
-            st.session_state["pdf_include_probabilities"] = True
-        if "pdf_include_disclaimer" not in st.session_state:
-            st.session_state["pdf_include_disclaimer"] = True
-        if "pdf_include_original_image" not in st.session_state:
-            st.session_state["pdf_include_original_image"] = False
-        if "pdf_include_gradcam_heatmap" not in st.session_state:
-            st.session_state["pdf_include_gradcam_heatmap"] = False
-        if "pdf_include_gradcam_overlay" not in st.session_state:
-            st.session_state["pdf_include_gradcam_overlay"] = False
-        if "pdf_include_exudates_mask" not in st.session_state:
-            st.session_state["pdf_include_exudates_mask"] = False
-        if "pdf_include_exudates_overlay" not in st.session_state:
-            st.session_state["pdf_include_exudates_overlay"] = False
-        if "pdf_include_haemorrhages_mask" not in st.session_state:
-            st.session_state["pdf_include_haemorrhages_mask"] = False
-        if "pdf_include_haemorrhages_overlay" not in st.session_state:
-            st.session_state["pdf_include_haemorrhages_overlay"] = False
-
         s1, s2 = st.columns([1, 1], gap="large")
         with s1:
             st.checkbox("Report details", key="pdf_include_report_details")
+            st.checkbox("Original image", key="pdf_include_original_image")
             st.checkbox("Prediction summary", key="pdf_include_prediction_summary")
             st.checkbox("Class probabilities", key="pdf_include_probabilities")
             st.checkbox("Disclaimer", key="pdf_include_disclaimer")
 
         with s2:
-            st.checkbox("Original image", key="pdf_include_original_image")
             st.checkbox("Grad-CAM heatmap", key="pdf_include_gradcam_heatmap")
             st.checkbox("Grad-CAM overlay", key="pdf_include_gradcam_overlay")
             st.checkbox("Exudates mask", key="pdf_include_exudates_mask")
@@ -542,6 +542,7 @@ def render_pdf_report_dialog(
                 st.session_state.pdf_missing_fields = []
                 st.session_state.generated_pdf_bytes = None
                 st.session_state.generated_pdf_name = None
+                st.session_state.pdf_dialog_initialized = False
                 st.rerun()
 
         if st.session_state.generated_pdf_bytes is not None:
