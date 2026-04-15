@@ -6,11 +6,12 @@ import numpy as np
 from PIL import Image as PILImage
 
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_LEFT
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import (
+    HRFlowable,
     Image as RLImage,
     Paragraph,
     SimpleDocTemplate,
@@ -27,10 +28,7 @@ def _safe_text(value: Any) -> str:
     return text if text else "-"
 
 
-def _np_to_rl_image(np_img: np.ndarray, width_mm: float = 78) -> RLImage:
-    """
-    Convert numpy image (H, W, C) or grayscale (H, W) to a ReportLab Image.
-    """
+def _np_to_rl_image(np_img: np.ndarray, width_mm: float = 82) -> RLImage:
     if np_img.ndim == 2:
         pil_img = PILImage.fromarray(np_img.astype(np.uint8), mode="L")
     else:
@@ -43,30 +41,99 @@ def _np_to_rl_image(np_img: np.ndarray, width_mm: float = 78) -> RLImage:
     width_px, height_px = pil_img.size
     target_width = width_mm * mm
     target_height = (height_px / max(width_px, 1)) * target_width
-
     return RLImage(buf, width=target_width, height=target_height)
 
 
-def _build_table(rows: List[List[str]], col_widths, header_bg="#dbeafe", header_fg="#12344d"):
-    table = Table(rows, colWidths=col_widths)
+def _build_clean_kv_table(rows: List[List[str]], col_widths):
+    table = Table(rows, colWidths=col_widths, hAlign="LEFT")
     table.setStyle(
-        TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(header_bg)),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor(header_fg)),
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
-            ("FONTSIZE", (0, 0), (-1, -1), 9.5),
-            ("LEADING", (0, 0), (-1, -1), 12),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
-            ("BACKGROUND", (0, 1), (-1, -1), colors.white),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("LEFTPADDING", (0, 0), (-1, -1), 8),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-            ("TOPPADDING", (0, 0), (-1, -1), 7),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-        ])
+        TableStyle(
+            [
+                ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+                ("FONTNAME", (1, 0), (1, -1), "Helvetica"),
+                ("FONTSIZE", (0, 0), (-1, -1), 10.5),
+                ("LEADING", (0, 0), (-1, -1), 14),
+                ("TEXTCOLOR", (0, 0), (-1, -1), colors.HexColor("#222222")),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+                ("TOPPADDING", (0, 0), (-1, -1), 2),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ]
+        )
     )
     return table
+
+
+def _build_summary_table(rows: List[List[str]], col_widths):
+    table = Table(rows, colWidths=col_widths, hAlign="LEFT")
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f8fafc")),
+                ("BOX", (0, 0), (-1, -1), 0.6, colors.HexColor("#dbe3ec")),
+                ("INNERGRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#e5e7eb")),
+                ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+                ("FONTNAME", (1, 0), (-1, -1), "Helvetica"),
+                ("TEXTCOLOR", (0, 0), (-1, -1), colors.HexColor("#111827")),
+                ("FONTSIZE", (0, 0), (-1, -1), 10),
+                ("LEADING", (0, 0), (-1, -1), 13),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 8),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+                ("TOPPADDING", (0, 0), (-1, -1), 7),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+            ]
+        )
+    )
+    return table
+
+
+def _build_prob_table(rows: List[List[str]], col_widths):
+    table = Table(rows, colWidths=col_widths, hAlign="LEFT")
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#eef6ff")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#12344d")),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#d6dee8")),
+                ("BACKGROUND", (0, 1), (-1, -1), colors.white),
+                ("FONTSIZE", (0, 0), (-1, -1), 9.5),
+                ("LEADING", (0, 0), (-1, -1), 12),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 8),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+            ]
+        )
+    )
+    return table
+
+
+def _build_image_card(label: str, rl_img: RLImage, small_style) -> Table:
+    card = Table(
+        [[Paragraph(f"<b>{label}</b>", small_style)], [rl_img]],
+        colWidths=[84 * mm],
+        hAlign="LEFT",
+    )
+    card.setStyle(
+        TableStyle(
+            [
+                ("BOX", (0, 0), (-1, -1), 0.6, colors.HexColor("#dbe3ec")),
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f8fafc")),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+            ]
+        )
+    )
+    return card
 
 
 def build_pdf_report(
@@ -78,9 +145,6 @@ def build_pdf_report(
     selected_view_mode: str,
     options: Dict[str, Any],
 ) -> bytes:
-    """
-    Build a PDF report from current analysis results and selected export options.
-    """
     buffer = io.BytesIO()
 
     doc = SimpleDocTemplate(
@@ -90,7 +154,7 @@ def build_pdf_report(
         rightMargin=16 * mm,
         topMargin=16 * mm,
         bottomMargin=16 * mm,
-        title=_safe_text(options.get("report_title", "DR Analysis Report")),
+        title=_safe_text(options.get("report_title", "DR Grade Report")),
     )
 
     styles = getSampleStyleSheet()
@@ -99,21 +163,22 @@ def build_pdf_report(
         "ReportTitle",
         parent=styles["Title"],
         fontName="Helvetica-Bold",
-        fontSize=20,
-        leading=24,
-        textColor=colors.HexColor("#0b3d5c"),
-        alignment=TA_LEFT,
-        spaceAfter=8,
+        fontSize=22,
+        leading=26,
+        textColor=colors.HexColor("#111111"),
+        alignment=TA_CENTER,
+        spaceAfter=2,
     )
 
-    sub_style = ParagraphStyle(
-        "ReportSub",
+    meta_right_style = ParagraphStyle(
+        "MetaRight",
         parent=styles["Normal"],
         fontName="Helvetica",
-        fontSize=10,
-        leading=14,
-        textColor=colors.HexColor("#4b5563"),
-        spaceAfter=10,
+        fontSize=9.5,
+        leading=12,
+        textColor=colors.HexColor("#6b7280"),
+        alignment=TA_RIGHT,
+        spaceAfter=6,
     )
 
     section_style = ParagraphStyle(
@@ -122,16 +187,16 @@ def build_pdf_report(
         fontName="Helvetica-Bold",
         fontSize=14,
         leading=18,
-        textColor=colors.HexColor("#12344d"),
+        textColor=colors.HexColor("#222222"),
         spaceBefore=8,
-        spaceAfter=8,
+        spaceAfter=6,
     )
 
     body_style = ParagraphStyle(
         "BodyTextCustom",
         parent=styles["Normal"],
         fontName="Helvetica",
-        fontSize=10.5,
+        fontSize=10.2,
         leading=14,
         textColor=colors.black,
     )
@@ -145,71 +210,87 @@ def build_pdf_report(
         textColor=colors.HexColor("#5b6470"),
     )
 
+    eye_title_style = ParagraphStyle(
+        "EyeTitleStyle",
+        parent=styles["Heading2"],
+        fontName="Helvetica-Bold",
+        fontSize=15,
+        leading=18,
+        textColor=colors.HexColor("#12344d"),
+        spaceBefore=8,
+        spaceAfter=6,
+    )
+
+    disclaimer_style = ParagraphStyle(
+        "DisclaimerStyle",
+        parent=styles["Normal"],
+        fontName="Helvetica",
+        fontSize=9.5,
+        leading=13,
+        textColor=colors.HexColor("#b91c1c"),
+        alignment=TA_LEFT,
+        spaceBefore=2,
+    )
+
     story = []
 
-    report_title = _safe_text(options.get("report_title", "DR Analysis Report"))
+    report_title = _safe_text(options.get("report_title", "DR Grade Report"))
     generated_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+    # centered heading
     story.append(Paragraph(report_title, title_style))
-    story.append(
-        Paragraph(
-            f"Generated on: {generated_time}<br/>Analysis mode: {analysis_input_mode.title()}",
-            sub_style,
-        )
-    )
+    # generated time at right
+    story.append(Paragraph(f"Generated on: {generated_time}", meta_right_style))
     story.append(Spacer(1, 4))
 
-    # ---------------------------
-    # Patient / report details
-    # ---------------------------
-    if options.get("include_report_details", True):
-        story.append(Paragraph("Report Details", section_style))
+    # patient details
+    story.append(Paragraph("PATIENT DETAILS", section_style))
 
-        detail_rows = [["Field", "Value"]]
-        detail_rows.append(["Patient name", _safe_text(options.get("patient_name"))])
-        detail_rows.append(["Patient ID", _safe_text(options.get("patient_id"))])
-        detail_rows.append(["Clinician / Examiner", _safe_text(options.get("clinician_name"))])
-        detail_rows.append(["Institution", _safe_text(options.get("institution_name"))])
-        detail_rows.append(["Notes", _safe_text(options.get("notes"))])
-        detail_rows.append(["Available eyes", ", ".join([eye.title() for eye in available_eyes])])
-        detail_rows.append(["Current analysis view", _safe_text(selected_view_mode)])
+    left_rows = [
+        ["Name:", _safe_text(options.get("patient_name"))],
+        ["Patient ID:", _safe_text(options.get("patient_id"))],
+    ]
+    right_rows = [
+        ["Clinician / Examiner:", _safe_text(options.get("clinician_name"))],
+        ["Institution:", _safe_text(options.get("institution_name"))],
+    ]
 
-        story.append(
-            _build_table(
-                detail_rows,
-                col_widths=[50 * mm, 120 * mm],
-                header_bg="#dbeafe",
-                header_fg="#12344d",
-            )
+    left_table = _build_clean_kv_table(left_rows, [32 * mm, 58 * mm])
+    right_table = _build_clean_kv_table(right_rows, [50 * mm, 40 * mm])
+
+    patient_block = Table(
+        [[left_table, right_table]],
+        colWidths=[90 * mm, 90 * mm],
+        hAlign="LEFT",
+    )
+    patient_block.setStyle(
+        TableStyle(
+            [
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+            ]
         )
-        story.append(Spacer(1, 10))
+    )
+    story.append(patient_block)
+    story.append(Spacer(1, 4))
+    story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#8b8b8b")))
+    story.append(Spacer(1, 8))
 
-    # ---------------------------
-    # Eye sections
-    # ---------------------------
     for eye in available_eyes:
         c = computed[eye]
         conf = float(c["probs"][c["pred_idx"]])
 
-        story.append(Paragraph(f"{eye.title()} Eye", section_style))
+        story.append(Paragraph(f"{eye.title()} Eye", eye_title_style))
 
         if options.get("include_prediction_summary", True):
-            info_rows = [["Item", "Result"]]
-            info_rows.append(["Predicted grade", _safe_text(c["pred_name"])])
-            info_rows.append(["Predicted class index", str(c["pred_idx"])])
-            info_rows.append(["Confidence score", f"{conf * 100:.1f}%"])
-            info_rows.append(["CAM method", _safe_text(c["cam_method_ui"])])
-            info_rows.append(["Target class for CAM", _safe_text(class_names[c["target_class"]])])
-            info_rows.append(["Target layer", _safe_text(c["layer_name"])])
-
-            story.append(
-                _build_table(
-                    info_rows,
-                    col_widths=[55 * mm, 115 * mm],
-                    header_bg="#e0f2fe",
-                    header_fg="#12344d",
-                )
-            )
+            summary_rows = [
+                ["Predicted Grade", _safe_text(c["pred_name"])],
+                ["Confidence", f"{conf * 100:.1f}%"],
+            ]
+            story.append(_build_summary_table(summary_rows, [50 * mm, 130 * mm]))
             story.append(Spacer(1, 8))
 
         if options.get("include_probabilities", True):
@@ -220,103 +301,96 @@ def build_pdf_report(
 
             story.append(Paragraph("Class Probabilities", body_style))
             story.append(Spacer(1, 4))
-            story.append(
-                _build_table(
-                    prob_rows,
-                    col_widths=[95 * mm, 75 * mm],
-                    header_bg="#dcfce7",
-                    header_fg="#14532d",
-                )
-            )
+            story.append(_build_prob_table(prob_rows, [100 * mm, 80 * mm]))
             story.append(Spacer(1, 8))
 
-        # ---------------------------
-        # Images
-        # ---------------------------
-        image_tables = []
+        image_cards = []
 
         if options.get("include_original_image", False):
-            image_tables.append(
-                ("Original Image", _np_to_rl_image(c["raw_rgb"]))
-            )
+            image_cards.append(_build_image_card("Original Image", _np_to_rl_image(c["raw_rgb"]), small_style))
 
         if options.get("include_gradcam_heatmap", False):
-            image_tables.append(
-                ("Grad-CAM Heatmap", _np_to_rl_image(c["heatmap_rgb"]))
-            )
+            image_cards.append(_build_image_card("Grad-CAM Heatmap", _np_to_rl_image(c["heatmap_rgb"]), small_style))
 
         if options.get("include_gradcam_overlay", False):
-            image_tables.append(
-                ("Grad-CAM Overlay", _np_to_rl_image(c["cam_overlay_rgb"]))
-            )
+            image_cards.append(_build_image_card("Grad-CAM Overlay", _np_to_rl_image(c["cam_overlay_rgb"]), small_style))
 
         if options.get("include_exudates_mask", False):
             ex_mask_img = (c["seg"]["ex_mask"] * 255).astype(np.uint8)
-            image_tables.append(
-                ("Exudates Mask", _np_to_rl_image(ex_mask_img))
-            )
+            image_cards.append(_build_image_card("Exudates Mask", _np_to_rl_image(ex_mask_img), small_style))
 
         if options.get("include_exudates_overlay", False):
-            image_tables.append(
-                ("Exudates Overlay", _np_to_rl_image(c["seg"]["ex_overlay"]))
-            )
+            image_cards.append(_build_image_card("Exudates Overlay", _np_to_rl_image(c["seg"]["ex_overlay"]), small_style))
 
         if options.get("include_haemorrhages_mask", False):
             he_mask_img = (c["seg"]["he_mask"] * 255).astype(np.uint8)
-            image_tables.append(
-                ("Haemorrhages Mask", _np_to_rl_image(he_mask_img))
-            )
+            image_cards.append(_build_image_card("Haemorrhages Mask", _np_to_rl_image(he_mask_img), small_style))
 
         if options.get("include_haemorrhages_overlay", False):
-            image_tables.append(
-                ("Haemorrhages Overlay", _np_to_rl_image(c["seg"]["he_overlay"]))
-            )
+            image_cards.append(_build_image_card("Haemorrhages Overlay", _np_to_rl_image(c["seg"]["he_overlay"]), small_style))
 
-        if image_tables:
+        if image_cards:
             story.append(Paragraph("Selected Images", body_style))
             story.append(Spacer(1, 4))
 
-            # Place images two per row where possible
             row = []
-            for idx, (label, rl_img) in enumerate(image_tables, start=1):
-                cell = Table(
-                    [[Paragraph(f"<b>{label}</b>", small_style)], [rl_img]],
-                    colWidths=[82 * mm],
-                )
-                cell.setStyle(
-                    TableStyle([
-                        ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
-                        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f8fafc")),
-                        ("LEFTPADDING", (0, 0), (-1, -1), 6),
-                        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-                        ("TOPPADDING", (0, 0), (-1, -1), 6),
-                        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                    ])
-                )
-                row.append(cell)
-
+            for card in image_cards:
+                row.append(card)
                 if len(row) == 2:
-                    story.append(Table([row], colWidths=[84 * mm, 84 * mm]))
+                    image_row = Table([row], colWidths=[87 * mm, 87 * mm], hAlign="LEFT")
+                    image_row.setStyle(
+                        TableStyle(
+                            [
+                                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+                            ]
+                        )
+                    )
+                    story.append(image_row)
                     story.append(Spacer(1, 6))
                     row = []
 
             if row:
                 if len(row) == 1:
                     row.append("")
-                story.append(Table([row], colWidths=[84 * mm, 84 * mm]))
+                image_row = Table([row], colWidths=[87 * mm, 87 * mm], hAlign="LEFT")
+                image_row.setStyle(
+                    TableStyle(
+                        [
+                            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                            ("TOPPADDING", (0, 0), (-1, -1), 0),
+                            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+                        ]
+                    )
+                )
+                story.append(image_row)
                 story.append(Spacer(1, 6))
 
-        story.append(Spacer(1, 8))
+        story.append(Spacer(1, 6))
 
+    # notes moved near end
+    notes_text = _safe_text(options.get("notes"))
+    if notes_text != "-":
+        story.append(Spacer(1, 2))
+        story.append(Paragraph("Notes", section_style))
+        story.append(Paragraph(notes_text, body_style))
+        story.append(Spacer(1, 6))
+
+    # disclaimer clearly visible
     if options.get("include_disclaimer", True):
-        story.append(Paragraph("Disclaimer", section_style))
+        story.append(HRFlowable(width="100%", thickness=0.8, color=colors.HexColor("#cbd5e1")))
+        story.append(Spacer(1, 6))
         story.append(
             Paragraph(
-                "This report is generated by a research/demo system for diabetic retinopathy analysis. "
+                "Disclaimer: This report is generated by a research/demo system for diabetic retinopathy analysis. "
                 "It is not a medical diagnosis and should not be used as a substitute for clinical judgment "
                 "or professional ophthalmic evaluation.",
-                small_style,
+                disclaimer_style,
             )
         )
 
